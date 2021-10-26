@@ -2638,7 +2638,9 @@ NSString *const operationWrite = @"write";
   [self addValue:characteristic.value toDictionary:returnObj];
 
   //Get the correct callback and return value
-  if (characteristic.isNotifying) {
+  /** Assume app wants to get notified if characteristic properties are set to 0x2A = read/write/indicate
+  **/
+  if (characteristic.isNotifying || characteristic.properties == 0x2A) {
     NSString* callback = [self getCallback:characteristic.UUID forConnection:connection forOperationType:operationSubscribe];
 
     if (callback == nil) {
@@ -2827,7 +2829,11 @@ NSString *const operationWrite = @"write";
   [self addDevice:peripheral :returnObj];
   [self addCharacteristic:characteristic :returnObj];
 
-  if (error != nil) {
+  /**
+    * Note: Probably error 128 is thrown by iOS because characteristic is too long
+    * 'didUpdateValueForCharacteristic' will be called anyway to we just ignore error 128
+  **/
+  if (error != nil && error.code != 128) {
     //Usually I would use characteristic.isNotifying to determine which callback to use
     //But that probably isn't accurate if there's an error, so just use subscribe
     NSString* callback = [self getCallback:characteristic.UUID forConnection:connection forOperationType:operationSubscribe];
@@ -2851,7 +2857,7 @@ NSString *const operationWrite = @"write";
   }
 
   //If notifying, send result via subscribe operation
-  if (characteristic.isNotifying) {
+  if (characteristic.isNotifying || error.code == 128) {
     NSString* callback = [self getCallback:characteristic.UUID forConnection:connection forOperationType:operationSubscribe];
 
     if (callback == nil)
